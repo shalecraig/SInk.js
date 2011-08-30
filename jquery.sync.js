@@ -93,7 +93,7 @@ if (window.jQuery === 'undefined') {
 				console.log('tab was opened: ', opened_tab_id);
 			},
 			
-			closedTabHanlder : function (closed_tab_id) {
+			closedTabHandler : function (closed_tab_id) {
 				//This is the "default new tab handler"
 				//This should be triggered whenever a tab is closed.
 				console.log('tab was closed', closed_tab_id);
@@ -111,7 +111,8 @@ if (window.jQuery === 'undefined') {
 					return false;
 				}
 				try {
-					var message = (!event) ? JSON.parse(event.newValue) : JSON.parse(window.event.newValue),
+					if (!event) event = window.event;
+					var message = JSON.parse(event.newValue),
 						found = false,
 						i = 0,
 						tabs = message.sync_event_object;
@@ -202,9 +203,12 @@ if (window.jQuery === 'undefined') {
 				
 				
 				if (window.addEventListener) { //Apparently this helps IE8. Caution: this hasn't been tested on any version of IE.
-					window.addEventListener('storage', function (event) {
-						$.sync.syncEvent(event);
-					});
+					window.addEventListener('storage',
+						function (event) { 
+							$.sync.syncEvent(event);
+						},
+						false //Interestingly, JS in Firefox complains when this param isn't included.
+					);
 				} else {
 					window.attachEvent('onstorage', function (event) {
 						$.sync.syncEvent(event);
@@ -264,5 +268,5 @@ if (window.jQuery === 'undefined') {
 				}
 			}
 		};
-	}(jQuery));
+	}(window.jQuery));
 }
