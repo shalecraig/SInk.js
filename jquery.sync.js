@@ -38,6 +38,9 @@
 			Cross-browser testing.
 				Works with:
 					Chrome 15.0.865.0
+					Firefox 5.0.1
+					Firefox 6.0
+					
 					
 
 		(possible roadmap:)
