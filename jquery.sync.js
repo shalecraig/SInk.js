@@ -31,6 +31,8 @@
 					Reported chrome issue #94705  (http://bit.ly/obA3xf)
 					Refreshes sometimes add other tabs without removing them before the unload.
 					Also doesn't get called all of the time when closing tabs.
+					Added a different type of onunload (v.s. onbeforeunload) handler, hopefully this will reduce the amount of instances of failure.
+					Will not ever be sure that this bug is fixed unless chrome issue is addressed. (cannot reproduce, was happening randomly).
 				
 			Check that all other localStorage events in spec are handled properly.
 				Re-establish identity of the tab that called localStorage.clear(); - This will be tough. See comment in commented out code regarding TypeError
@@ -59,6 +61,7 @@ if (window.jQuery === 'undefined') {
 			numTabs : 0,
 			local_tab_list : [],
 			initialized : false,
+			closed_event : false,
 			id :  {
 				name : Date.now(), //This needs to be unique. Hence defaulting to "when the tab was opened". Hopefully, this will be unique.
 				value : {}
@@ -114,7 +117,9 @@ if (window.jQuery === 'undefined') {
 					return false;
 				}
 				try {
-					if (!event) event = window.event;
+					if (!event) {
+						event = window.event;
+					}
 					var message = JSON.parse(event.newValue),
 						found = false,
 						i = 0,
@@ -210,8 +215,8 @@ if (window.jQuery === 'undefined') {
 						function (event) { 
 							$.sync.syncEvent(event);
 						},
-						false //Interestingly, JS in Firefox complains when this param isn't included.
-					);
+						false);
+					//Interestingly, JS in Firefox complains when the third param isn't called. Chrome just assumes that it's false.
 				} else {
 					window.attachEvent('onstorage', function (event) {
 						$.sync.syncEvent(event);
@@ -231,22 +236,29 @@ if (window.jQuery === 'undefined') {
 				}
 				
 				//This handles cleaning up.
-				window.onbeforeunload = function () {
-					var extTabList = $.sync.l.g('_tab_list'), found = false, i = 0;
-	
-					if (typeof (extTabList) !== 'undefined' && extTabList !== null) {
-						extTabList = JSON.parse(extTabList);
-						
-						for (; i < extTabList.length && !found; i += 1) {
-							if (extTabList[i].name === $.sync.id.name) {
-								extTabList.splice(location, 1);
-								$.sync.l.s('_tab_list', JSON.stringify(extTabList));
-								found = true;
+				
+				var closing = function () {
+					if ($.sync.closed_event !== true) {
+						$.sync.closed_event = true;
+						var extTabList = $.sync.l.g('_tab_list'), found = false, i = 0;
+		
+						if (typeof (extTabList) !== 'undefined' && extTabList !== null) {
+							extTabList = JSON.parse(extTabList);
+							
+							for (; i < extTabList.length && !found; i += 1) {
+								if (extTabList[i].name === $.sync.id.name) {
+									extTabList.splice(location, 1);
+									$.sync.l.s('_tab_list', JSON.stringify(extTabList));
+									found = true;
+								}
 							}
 						}
 					}
-					
 				};
+				
+				//closer to being bulletproof, still not perfect.
+				window.onbeforeunload = closing;
+				window.onunload = closing;
 				
 				// Attempts to intercepts and call the localStorage.clear() event to reestablish tabular identity.
 				// Modded from (http://bit.ly/ohVpkh)
