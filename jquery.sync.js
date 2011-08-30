@@ -46,218 +46,223 @@
 				This will probably be accomplished by a change to an object, not on a functional level.
 			Move away from being a jQuery plugin. Why not let everyone into the fun?
 */
+if (window.jQuery === 'undefined') {
+	alert('you need to define this after jquery is loaded');
+} else {
+	(function ($) {
+		'use strict';
 		
-(function ($) {
-	'use strict';
-	$.sync = {
-		numTabs : 0,
-		local_tab_list : [],
-		initialized : false,
-		id :  {
-			name : Date.now(), //This needs to be unique. Hence defaulting to "when the tab was opened". Hopefully, this will be unique.
-			value : {}
-		},
-		message : function(message, targets) {
-			if (!$.sync.initialized) {
-				return false;
-			}
+		$.sync = {
+			numTabs : 0,
+			local_tab_list : [],
+			initialized : false,
+			id :  {
+				name : Date.now(), //This needs to be unique. Hence defaulting to "when the tab was opened". Hopefully, this will be unique.
+				value : {}
+			},
+			message : function (message, targets) {
+				if (!$.sync.initialized) {
+					return false;
+				}
+				
+				//this sets targets to be all recipients, if it is either null or empty.
+				if (typeof (targets) === 'undefined' || targets === null) {
+					targets = [];
+				} else if (targets.length === 1) {
+					targets = [targets];
+				}
+				
+				var passed = {
+					'passed' : (message),
+					'date_passed' : Date.now(),
+					'sync_event_object' : targets
+				};
+				$.sync.l.s('sync_event_object', JSON.stringify(passed));
+			},
 			
-			//this sets targets to be all recipients, if it is either null or empty.
-			if (typeof(targets) === 'undefined' || targets == null) {
-				targets = [];
-			} else if (targets.length == 1) {
-				targets = [targets];
-			}
 			
-			var passed = {
-				'passed' : (message),
-				'date_passed' : Date.now(),
-				'_sync_event_object' : targets
-			};
-			$.sync.l.s('_sync_event_object', JSON.stringify(passed));
-		},
-		
-		
-		inboundHandler : function(data) {
-			// This is the "default inbound event handler."
-			// Set this to what you need.
-			console.log(data);
-		},
-		
-		newTabHandler : function(opened_tab_id) {
-			//This is the "default new tab handler"
-			//This should be triggered whenever a new tab is opened, adding to list delivered in the get_tabs function.
-			console.log('tab was opened: ', opened_tab_id);
-		},
-		
-		closedTabHanlder : function(closed_tab_id) {
-			//This is the "default new tab handler"
-			//This should be triggered whenever a tab is closed.
-			console.log('tab was closed', closed_tab_id);
-		},
-		
-		//This is the last step whenever a message is sent to this tab.
-		callback : function (e) {
-			try {
-				$.sync.inboundHandler(e.passed);
-			} catch (e) {} //This fails silently when parsing bad events.
-		},
-		
-		syncEvent : function(event) {
-			if (!$.sync.initialized) {
-				return false;
-			}
-			try {
-				var message = (!event)? JSON.parse(event.newValue) : JSON.parse(window.event.newValue);
-				if (message == null) {
-					//Localstorage.clear() has been called. Reestablishing identity.
-					$.sync.set_identity();
-				} else if (event.key == "_tab_list") {
-					//either added, removed or modified the tab list...
-					if (message.length > $.sync.numTabs) { //added a tab.
-						$.sync.numTabs = message.length;
-						$.sync.newTabHandler($.sync.local_tab_list.push(message.pop()));
-					} else if (message.length < $.sync.numTabs) { //closed a tab.
-						
-						$.sync.numTabs = message.length;
-						
-						var found = false;
-						//this loop looks for the one about to be deleted, and pushes it to the event loop.
-						for (var i=0; i<$.sync.local_tab_list.length && !found; i++) {
-							if (-1 == $.inArray($.sync.local_tab_list[i],message)) {
-								$.sync.closedTabHandler($.sync.local_tab_list.splice(i,1));
-								found = true;
+			inboundHandler : function (data) {
+				// This is the "default inbound event handler."
+				// Set this to what you need.
+				console.log(data);
+			},
+			
+			newTabHandler : function (opened_tab_id) {
+				//This is the "default new tab handler"
+				//This should be triggered whenever a new tab is opened, adding to list delivered in the get_tabs function.
+				console.log('tab was opened: ', opened_tab_id);
+			},
+			
+			closedTabHanlder : function (closed_tab_id) {
+				//This is the "default new tab handler"
+				//This should be triggered whenever a tab is closed.
+				console.log('tab was closed', closed_tab_id);
+			},
+			
+			//This is the last step whenever a message is sent to this tab.
+			callback : function (e) {
+				try {
+					$.sync.inboundHandler(e.passed);
+				} catch (error) {} //This fails silently when parsing bad events.
+			},
+			
+			syncEvent : function (event) {
+				if (!$.sync.initialized) {
+					return false;
+				}
+				try {
+					var message = (!event) ? JSON.parse(event.newValue) : JSON.parse(window.event.newValue),
+						found = false,
+						i = 0,
+						tabs = message.sync_event_object;
+					if (message === null) {
+						//Localstorage.clear() has been called. Reestablishing identity.
+						$.sync.set_identity();
+					} else if (event.key === "_tab_list") {
+						//either added, removed or modified the tab list...
+						if (message.length > $.sync.numTabs) { //added a tab.
+							$.sync.numTabs = message.length;
+							$.sync.newTabHandler($.sync.local_tab_list.push(message.pop()));
+						} else if (message.length < $.sync.numTabs) { //closed a tab.
+							
+							$.sync.numTabs = message.length;
+							
+							//this loop looks for the one about to be deleted, and pushes it to the event loop.
+							for (; i < $.sync.local_tab_list.length && !found; i += 1) {
+								if (-1 === $.inArray($.sync.local_tab_list[i], message)) {
+									$.sync.closedTabHandler($.sync.local_tab_list.splice(i, 1));
+									found = true;
+								}
 							}
 						}
-					}
-				} else if (event.key == "_sync_event_object") {
-					if (typeof(message['_sync_event_object']) !== 'undefined') {
-						var tabs = message['_sync_event_object'];
-						if (tabs == undefined || tabs == null || tabs.constructor == Array) {
-							try {
-								$.sync.callback(message);
-							} catch (e) {}  //This function fails silently.
-						} else if (typeof(tabs) === 'string' && tabs == $.sync.id.name) {
-							try {
-								$.sync.callback(message);
-							} catch (e) {}
-						} else {
-							var found = false;
-							for (var i=0; i<tabs.length && !found; i++) {
-								if (tabs[i] == $.sync.id.name) {
+					} else if (event.key === "sync_event_object") {
+						if (typeof (message.sync_event_object) !== 'undefined') {
+							if (tabs === undefined || tabs === null || tabs.constructor === Array) {
+								try {
 									$.sync.callback(message);
+								} catch (e) {}  //This function fails silently.
+							} else if (typeof (tabs) === 'string' && tabs === $.sync.id.name) {
+								try {
+									$.sync.callback(message);
+								} catch (error) {}
+							} else {
+								for (; i < tabs.length && !found; i += 1) {
+									if (tabs[i] === $.sync.id.name) {
+										$.sync.callback(message);
+									}
 								}
 							}
 						}
 					}
+				} catch (uncaught_error) {
+					console.log('Failed at receiving the event.', uncaught_error);
+					return false;
 				}
-			} catch (e) {console.log('Failed at receiving the event.', e);return false;}
-			//This fails silently. This is done as to not interfere with other windows using the local storage.
-		},
-		
-		get_tabs : function() {
-			try {
-				var raw_tabs = $.sync.l.g('_tab_list');
-				return JSON.parse(raw_tabs);
-			} catch (e) {}
-		},
-		
-		set_identity : function(passed) {
-			var tab_id = $.sync.id;
-			if (typeof(passed) === 'object' && passed != null) {
-				if (typeof(passed.name) === 'string') {
-					tab_id.name = passed.name; //This needs to be unique.
-				} else {
-					//decreases the probability of tab name collision, if left unchecked. TODO: fix...
-					tab_id.name += Date.now();
-					tab_id.name = tab_id.name.toString();
-				}
-				if (typeof(passed.tab_value) === 'object') {
-					tab_id.value = passed.tab_value;
-				}
-			}
+				//This fails silently. This is done as to not interfere with other windows using the local storage.
+			},
 			
-			var orig_tabs = $.sync.l.g('_tab_list');
-			if (orig_tabs != 'undefined' && orig_tabs != null && orig_tabs != 'null') {
-				var tab_list = JSON.parse(orig_tabs);
-				tab_list.push(tab_id);
-				$.sync.l.s('_tab_list', JSON.stringify(tab_list));
-				$.sync.id = tab_id;
-				return tab_list;
-			} else {
-				$.sync.l.s('_tab_list', JSON.stringify([tab_id]));
-				$.sync.id = tab_id;
-				return [tab_id];
-			}
-		},
-		init : function(arg, tab_identity) {
-			$.sync.local_tab_list = $.sync.set_identity(tab_identity);
+			get_tabs : function () {
+				try {
+					var raw_tabs = $.sync.l.g('_tab_list');
+					return JSON.parse(raw_tabs);
+				} catch (e) {}
+			},
 			
-			$.sync.numTabs = $.sync.local_tab_list.length;
-			
-			
-			if (window.addEventListener) { //Apparently this helps IE8. Caution: this hasn't been tested on any version of IE.
-				window.addEventListener('storage', function(event) {
-					$.sync.syncEvent(event);
-				});
-			} else {
-				window.attachEvent('onstorage', function(event) {
-					$.sync.syncEvent(event);
-				});
-			}
-			
-			if (typeof(arg) !== undefined && arg != undefined) {
-				if (arg.callback != undefined && typeof(arg.callback) === 'function') {
-					$.sync.inboundHandler = arg.callback;
-				}
-				if (arg.closeTab != undefined && typeof(arg.closeTab) === 'function') {
-					$.sync.closedTabHandler = arg.closeTab;
-				}
-				if (arg.newTab != undefined && typeof(arg.newTab) === 'function') {
-					$.sync.newTabHandler = arg.newTab;
-				}
-			}
-			
-			//This handles cleaning up.
-			window.onbeforeunload = function () {
-				var extTabList = $.sync.l.g('_tab_list');
-
-				if (typeof(extTabList) !== 'undefined' && extTabList != null) {
-					extTabList = JSON.parse(extTabList);
-					var found = false;
-					
-					for (var i=0; i<extTabList.length && !found; i++) {
-						if (extTabList[i].name == $.sync.id.name) {
-							extTabList.splice(location,1);
-							$.sync.l.s('_tab_list', JSON.stringify(extTabList));
-							found = true;
-						}
+			set_identity : function (passed) {
+				var tab_id = $.sync.id, orig_tabs = $.sync.l.g('_tab_list');
+				if (typeof (passed) === 'object' && passed !== null) {
+					if (typeof (passed.name) === 'string') {
+						tab_id.name = passed.name; //This needs to be unique.
+					} else {
+						//decreases the probability of tab name collision, if left unchecked. TODO: fix...
+						tab_id.name += Date.now();
+						tab_id.name = tab_id.name.toString();
+					}
+					if (typeof (passed.tab_value) === 'object') {
+						tab_id.value = passed.tab_value;
 					}
 				}
 				
-			};
-			
-			// Attempts to intercepts and call the localStorage.clear() event to reestablish tabular identity.
-			// Modded from (http://bit.ly/ohVpkh)
-/*
-			//I'm getting a TypeError while running this code, this is a known issue.
-			localStorage.clear = function(native) {
-				return function() {
-					native();
-					$.sync.set_identity();
+				if (orig_tabs !== 'undefined' && orig_tabs !== null && orig_tabs !== 'null') {
+					var tab_list = JSON.parse(orig_tabs);
+					tab_list.push(tab_id);
+					$.sync.l.s('_tab_list', JSON.stringify(tab_list));
+					$.sync.id = tab_id;
+					return tab_list;
+				} else {
+					$.sync.l.s('_tab_list', JSON.stringify([tab_id]));
+					$.sync.id = tab_id;
+					return [tab_id];
 				}
-			}(localStorage.clear);
-*/
-
-			$.sync.initialized = true;
-		},
-		l : {
-			s : function (key, val) {
-				return localStorage.setItem(key,val);
 			},
-			g : function (key) {
-				return localStorage.getItem(key);
+			init : function (arg, tab_identity) {
+				$.sync.local_tab_list = $.sync.set_identity(tab_identity);
+				
+				$.sync.numTabs = $.sync.local_tab_list.length;
+				
+				
+				if (window.addEventListener) { //Apparently this helps IE8. Caution: this hasn't been tested on any version of IE.
+					window.addEventListener('storage', function (event) {
+						$.sync.syncEvent(event);
+					});
+				} else {
+					window.attachEvent('onstorage', function (event) {
+						$.sync.syncEvent(event);
+					});
+				}
+				
+				if (typeof (arg) !== undefined && arg !== undefined) {
+					if (arg.callback !== undefined && typeof (arg.callback) === 'function') {
+						$.sync.inboundHandler = arg.callback;
+					}
+					if (arg.closeTab !== undefined && typeof (arg.closeTab) === 'function') {
+						$.sync.closedTabHandler = arg.closeTab;
+					}
+					if (arg.newTab !== undefined && typeof (arg.newTab) === 'function') {
+						$.sync.newTabHandler = arg.newTab;
+					}
+				}
+				
+				//This handles cleaning up.
+				window.onbeforeunload = function () {
+					var extTabList = $.sync.l.g('_tab_list'), found = false, i = 0;
+	
+					if (typeof (extTabList) !== 'undefined' && extTabList !== null) {
+						extTabList = JSON.parse(extTabList);
+						
+						for (; i < extTabList.length && !found; i += 1) {
+							if (extTabList[i].name === $.sync.id.name) {
+								extTabList.splice(location, 1);
+								$.sync.l.s('_tab_list', JSON.stringify(extTabList));
+								found = true;
+							}
+						}
+					}
+					
+				};
+				
+				// Attempts to intercepts and call the localStorage.clear() event to reestablish tabular identity.
+				// Modded from (http://bit.ly/ohVpkh)
+	/*
+				//I'm getting a TypeError while running this code, this is a known issue.
+				localStorage.clear = function (native) {
+					return function () {
+						native();
+						$.sync.set_identity();
+					}
+				}(localStorage.clear);
+	*/
+	
+				$.sync.initialized = true;
+			},
+			l : {
+				s : function (key, val) {
+					return localStorage.setItem(key, val);
+				},
+				g : function (key) {
+					return localStorage.getItem(key);
+				}
 			}
-		}
-	};
-}(jQuery));
+		};
+	}(jQuery));
+}
