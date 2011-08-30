@@ -1,4 +1,4 @@
-// jQuery Sync by Shale Craig (shalecraig.com)
+// jQuery Sink by Shale Craig (shalecraig.com)
 //
 // Copyright (c) 2011 Shale Craig
 //
@@ -35,7 +35,10 @@
 			Check that all other localStorage events in spec are handled properly.
 				Re-establish identity of the tab that called localStorage.clear(); - This will be tough. See comment in commented out code regarding TypeError
 			
-			Cross-browser testing. It currently works(ish) with chrome 15.
+			Cross-browser testing.
+				Works with:
+					Chrome 15.0.865.0
+					
 
 		(possible roadmap:)
 			Change paradigm from one send/recieve per page to being able to send to 'addresses' from 'mailboxes'.
