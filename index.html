@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>jQuery Sync Demo</title>
+    <style>
+      body {
+        font-family: Helvetica, Arial, sans-serif;
+      }
+    </style>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="ext_libs/jquery-1.6.1.min.js">\x3C/script>')</script>
+    <script src="jquery.sync.js" type="text/javascript" charset="utf-8"></script>
+    <script>
+      $(document).ready(function() {
+      	$.sync.init({
+      				callback : function (payload) {
+						//Process the payload of the message asyncronously.
+						console.log('Message Received \nPayload: ', payload);
+      				},
+      				newTab : function (payload) {
+      					console.log('New tab using jQuery.sync.js has been launched', payload);
+      					$('#num_other').text($.sync.numTabs);
+      				},
+      				closeTab : function (payload) {
+      					console.log('A tab using jQuery.sync.js has been killed', payload);
+      					$('#num_other').text($.sync.numTabs);
+      				}
+      			},{
+					name : ('index_1' + Date.now()), //It helps if this is unique between tabs.
+					value : {'other data about this tab':'goes here'}
+				});
+		
+		$('#num_other').text($.sync.numTabs);
+		//this callback will allow the number to update whenever a tab is opened/closed:
+		
+      	console.log($.sync.id.name + ' ready for duty');
+      	
+      	$('#all_tabs').click(function() {
+      	
+      		var message = 'Message from tab ' + $.sync.id.name + ' to all tabs.';
+      		var targets = [];
+      		$.sync.message(message,targets); //Empty arrays go to all tabs.
+      	});
+      	$('#no_tabs').click(function() {
+      		var message = {
+      			part_1 : 'Message',
+      			part_2 : 'is',
+      			part_3 : 'in',
+      			part_4 : 'parts'
+      		};
+      		$.sync.message(message); //Undefined targets go to all tabs. 
+      	});
+      	
+      	$('#specific_tab_1').click(function() {
+      		var message = 'Message from index_1 (' + $.sync.id.name + ') to index_2.';
+      		var target = 'index_2'; //this is the name of index_2
+      		$.sync.message(message,target); //Empty arrays go to all tabs.
+      	});
+      	$('#specific_tab_2').click(function() {
+      		var message = 'The game.';
+      		var target = 'index_2'; //this is the name of index_2
+      		$.sync.message(message,target); //Empty arrays go to all tabs.
+      	});
+      	
+      	$('#change_callback').click(function() {
+      		$.sync.callback = function() {
+      			alert("New version of the message storage event callback has been called.");
+      		}
+      	});
+      	$('#change_callback_2').click(function() {
+      		$.sync.callback = function() {
+      			console.log("New version of the message storage event callback has been called.");
+      		}
+      	});
+      	
+      	
+      });
+    </script>
+  </head>
+
+  <body>
+    <h1>jQuery Sync Demo</h1>
+
+    <p>jQuery Sync is a framework baked on top of jQuery to allow windows/frames/tabs in your web app to talk to each other.</p>
+    <p>In chrome's preview when typing in pages, it doesn't call the 'leaving window' event when going to another page. If you accidentally load a page without firing the page leaving event, the tab remains in the list.</p>
+
+    <h2>Number of tabs open (including this one): <span id='num_other'></span></h2>
+    <p>
+      <div>This is the number of instances of this plugin open in other tabs...</div>
+    </p>
+
+    <h2>Send a notification to all other tabs.</h2>
+    <p>This one sends an object to all currently opened tabs (other than this one), by passing an empty array as the targeted recipients.</p>
+    <p><button id='all_tabs'>Click me!</button></p>
+    <h2>Send a notification with no target specified (all tabs).</h2>
+    <p>This one sends an object to all currently opened tabs, but doesn't have a second argument.</p>
+    <p><button id='no_tabs'>Click me!</button></p>
+    <h2>Send a notification to a specific tab.</h2>
+    <p>This one sends an object a specific tab. Due to the nature of localStorage, it is currently not possible to pass the event to itself. You will need to open index_2.html to run this example.</p>
+    <p>Target:
+    	<button id="specific_tab_1">Send message 1</button><button id="specific_tab_2">Send message 2</button></p>
+  </body>
+</html>

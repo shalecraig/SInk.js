@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>jQuery Sync Demo (page 2)</title>
+    <style>
+      body {
+        font-family: Helvetica, Arial, sans-serif;
+      }
+    </style>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="ext_libs/jquery-1.6.1.min.js">\x3C/script>')</script>
+    <script src="jquery.sync.js" type="text/javascript" charset="utf-8"></script>
+    <script>
+      $(document).ready(function() {
+      	$.sync.init({
+      			callback : function(data) {
+      				$('#event').prepend(JSON.stringify(data)+'<br>');
+      			}
+      		},
+      		{
+					name : 'index_2',
+					value : {'other data about this tab':'goes here'}
+				});
+      	
+      	
+      });
+    </script>
+  </head>
+
+  <body>
+    <h1>jQuery Sync Demo (page 2)</h1>
+
+    <p>Read the spec written in index.html. It's much more useful.</p>
+
+    <h2>Messages passed to this tab:</h2>
+    <p id="event">
+    	[none]
+    </p>
+  </body>
+</html>
