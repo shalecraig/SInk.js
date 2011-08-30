@@ -17,3 +17,8 @@ Tested & compatible with:
 > Firefox 5 - 6
 
 > Safari 5.1
+
+
+localStorage.clear() is not supported in the tab that it is called from. When the index of tabs is rebuilt, the tab that calls it will not be re-added to the index.
+
+A tab sending a message to itself is not completely supported. Do not assume that it will not receive the message, but do not rely on it.

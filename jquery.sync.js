@@ -75,8 +75,21 @@ if (window.jQuery === 'undefined') {
 				//this sets targets to be all recipients, if it is either null or empty.
 				if (typeof (targets) === 'undefined' || targets === null) {
 					targets = [];
-				} else if (targets.length === 1) {
-					targets = [targets];
+				} else if (typeof (targets) === 'string') {
+					if (targets === $.sync.id.name) {
+						//Sending a message to itself. Prevent 'trafficking' in the localStorage object.
+						return $.sync.inboundHandler(message);
+					} else {
+						targets = [targets];
+					}
+				} else if (targets.constructor === Array) {
+					var i = 0, found = false;
+					for (; i < targets.length && !found; i += 1) {
+						if (targets[i] === $.sync.id.name) {
+							found = true;
+							$.sync.inboundHandler(message);
+						}
+					}
 				}
 				
 				var passed = {
@@ -124,7 +137,7 @@ if (window.jQuery === 'undefined') {
 					var message = JSON.parse(event.newValue),
 						found = false,
 						i = 0,
-						tabs = message.sync_event_object;
+						tabs;
 					if (message === null) {
 						//Localstorage.clear() has been called. Reestablishing identity.
 						$.sync.set_identity();
@@ -147,6 +160,7 @@ if (window.jQuery === 'undefined') {
 						}
 					} else if (event.key === "sync_event_object") {
 						if (typeof (message.sync_event_object) !== 'undefined') {
+							tabs = message['_sync_event_object'];
 							if (tabs === undefined || tabs === null || tabs.constructor === Array) {
 								try {
 									$.sync.callback(message);
