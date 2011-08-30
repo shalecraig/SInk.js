@@ -1,4 +1,5 @@
-jQuery Meow
+jQuery Sync
 ===========
 
-A plugin to provide Growl-like notifications. Will support bindings for various jQuery events and ability to 'meow' the content of a bound element (e.g. a Rails flash on load) or a message passed as an argument (e.g. button clicks).
+A plugin to provide asynchronous object-passing between tabs.
+For reals, yo.
