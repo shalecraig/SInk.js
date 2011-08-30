@@ -35,13 +35,14 @@
 					Will not ever be sure that this bug is fixed unless chrome issue is addressed. (cannot reproduce, was happening randomly).
 				
 			Check that all other localStorage events in spec are handled properly.
-				Re-establish identity of the tab that called localStorage.clear(); - This will be tough. See comment in commented out code regarding TypeError
+				Re-establish identity of the tab that called localStorage.clear(); - This will be tough to do efficiently. See commented out code re: TypeError.
 			
 			Cross-browser testing.
 				Works with:
 					Chrome 15.0.865.0
 					Firefox 5.0.1
 					Firefox 6.0
+					Safari 5.1
 					
 					
 
