@@ -71,7 +71,6 @@
 				'date_passed' : Date.now(),
 				'_sync_event_object' : targets
 			};
-			console.log('sending message', passed);
 			$.sync.l.s('_sync_event_object', JSON.stringify(passed));
 		},
 		
@@ -94,37 +93,28 @@
 			console.log('tab was closed', closed_tab_id);
 		},
 		
-		//this is the 'meat' of the plugin: this is the last step whenever a message is sent to this tab.
+		//This is the last step whenever a message is sent to this tab.
 		callback : function (e) {
 			try {
 				$.sync.inboundHandler(e.passed);
-			} catch (e) {
-				console.log("Error is:", e);
-			} //Except for a debugging console.log, this fails silently when parsing bad events.
+			} catch (e) {} //This fails silently when parsing bad events.
 		},
 		
 		syncEvent : function(event) {
-			console.log('syncEvent recieved: ', event);
 			if (!$.sync.initialized) {
 				return false;
 			}
 			try {
 				var message = (!event)? JSON.parse(event.newValue) : JSON.parse(window.event.newValue);
-				console.log('message: ', message, 'event: ', event);
 				if (message == null) {
-					console.log('localStorage.clear() was called. Repairing tab listing.');
 					//Localstorage.clear() has been called. Reestablishing identity.
 					$.sync.set_identity();
 				} else if (event.key == "_tab_list") {
 					//either added, removed or modified the tab list...
-					console.log('The number of tabs was modified.', message.length, $.sync.numTabs);
 					if (message.length > $.sync.numTabs) { //added a tab.
-						console.log('tab was opened.');
 						$.sync.numTabs = message.length;
 						$.sync.newTabHandler($.sync.local_tab_list.push(message.pop()));
-						console.log('The number of tabs was modified.', message.length, $.sync.numTabs);
 					} else if (message.length < $.sync.numTabs) { //closed a tab.
-						console.log('Tab was closed.');
 						
 						$.sync.numTabs = message.length;
 						
@@ -138,26 +128,17 @@
 						}
 					}
 				} else if (event.key == "_sync_event_object") {
-					console.log('message was recieved');
 					if (typeof(message['_sync_event_object']) !== 'undefined') {
 						var tabs = message['_sync_event_object'];
-						console.log('here are some tabs: ', tabs);
 						if (tabs == undefined || tabs == null || tabs.constructor == Array) {
-							console.log('Broadcasting to all tabs.');
 							try {
 								$.sync.callback(message);
-							} catch (e) {  //In effect, this function fails silently.
-								console.log('Failed calling the callback');
-							}
+							} catch (e) {}  //This function fails silently.
 						} else if (typeof(tabs) === 'string' && tabs == $.sync.id.name) {
 							try {
-								console.log('calling the callback');
 								$.sync.callback(message);
-							} catch (e) {
-								console.log('Failed calling the callback');
-							}
+							} catch (e) {}
 						} else {
-							console.log('Broadcasting to specific tabs.', tabs, $.sync.id.name, tabs == $.sync.id.name);
 							var found = false;
 							for (var i=0; i<tabs.length && !found; i++) {
 								if (tabs[i] == $.sync.id.name) {
@@ -167,20 +148,15 @@
 						}
 					}
 				}
-			} catch (e) {console.log('Failed at fixing the event.', e);return false;}
+			} catch (e) {console.log('Failed at receiving the event.', e);return false;}
 			//This fails silently. This is done as to not interfere with other windows using the local storage.
 		},
 		
 		get_tabs : function() {
 			try {
 				var raw_tabs = $.sync.l.g('_tab_list');
-				console.log(JSON.parse(raw_tabs));
 				return JSON.parse(raw_tabs);
-			} catch (e) {
-				console.log('get_tabs failed', e);
-				return false;
-			}
-			
+			} catch (e) {}
 		},
 		
 		set_identity : function(passed) {
@@ -197,7 +173,6 @@
 					tab_id.value = passed.tab_value;
 				}
 			}
-			console.log('tab_id', tab_id);
 			
 			var orig_tabs = $.sync.l.g('_tab_list');
 			if (orig_tabs != 'undefined' && orig_tabs != null && orig_tabs != 'null') {
@@ -217,7 +192,6 @@
 			
 			$.sync.numTabs = $.sync.local_tab_list.length;
 			
-			console.log('this tab\'s id: ', $.sync.id);
 			
 			if (window.addEventListener) { //Apparently this helps IE8. Caution: this hasn't been tested on any version of IE.
 				window.addEventListener('storage', function(event) {
@@ -243,9 +217,8 @@
 			
 			//This handles cleaning up.
 			window.onbeforeunload = function () {
-				console.log('Closing tab');
 				var extTabList = $.sync.l.g('_tab_list');
-				console.log('Ext list: ', extTabList);
+
 				if (typeof(extTabList) !== 'undefined' && extTabList != null) {
 					extTabList = JSON.parse(extTabList);
 					var found = false;
@@ -256,9 +229,7 @@
 							$.sync.l.s('_tab_list', JSON.stringify(extTabList));
 							found = true;
 						}
-						console.log('extTabList', extTabList);
 					}
-					console.log($.sync.id, extTabList,$.inArray($.sync.id,extTabList));
 				}
 				
 			};
